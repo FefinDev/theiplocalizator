@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>TheIPLocalizator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
@@ -17,20 +17,23 @@
       color: #fff;
       display: flex;
       justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+      padding: 2rem 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 460px;
     }
 
     .card {
       background: #12121c;
       border-radius: 16px;
       padding: 24px;
-      width: 100%;
-      max-width: 460px;
+      margin-bottom: 20px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.4);
     }
 
-    h1 {
+    h1, h3 {
       text-align: center;
       margin-top: 0;
     }
@@ -39,6 +42,7 @@
       display: flex;
       gap: 8px;
       margin-bottom: 12px;
+      flex-direction: column;
     }
 
     input {
@@ -56,21 +60,12 @@
       background: #4f46e5;
       color: white;
       cursor: pointer;
+      font-size: 1rem;
+      margin-top: 8px;
     }
 
-    button.secondary {
-      background: #2e2e44;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-
-    .result {
-      background: #1b1b2b;
-      border-radius: 12px;
-      padding: 14px;
-      margin-top: 12px;
-      white-space: pre-line;
-      font-size: 0.95rem;
+    button:hover {
+      background: #3730a3;
     }
 
     #map {
@@ -83,7 +78,6 @@
       background: #181827;
       border-radius: 12px;
       padding: 12px;
-      margin-top: 16px;
       font-size: 0.85rem;
       color: #ddd;
     }
@@ -94,95 +88,136 @@
       margin-bottom: 8px;
     }
 
-    .error {
-      color: #ff6b6b;
-      margin-top: 8px;
-      text-align: center;
-    }
-
     footer {
       text-align: center;
       margin-top: 12px;
       font-size: 0.75rem;
       color: #aaa;
     }
+
+    .result {
+      background: #1b1b2b;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 12px;
+      white-space: pre-line;
+      font-size: 0.95rem;
+    }
+
+    #ips {
+      background: #1b1b2b;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 12px;
+      white-space: pre-line;
+      font-size: 0.95rem;
+    }
+
+    .error {
+      color: #ff6b6b;
+      margin-top: 8px;
+      text-align: center;
+    }
+
   </style>
 </head>
 <body>
-
-<div class="card">
-  <h1>🌍 TheIPLocalizator</h1>
-
-  <div class="input-group">
-    <input id="ipInput" placeholder="Ej: 8.8.8.8">
-    <button onclick="buscarIP()">Buscar</button>
+<div class="container">
+  <div class="card">
+    <h1>🌍 TheIPLocalizator</h1>
+    <div class="input-group">
+      <input id="ipInput" placeholder="Enter an IPv4 or IPv6 address">
+      <button onclick="lookupIP()">Locate IP</button>
+      <button onclick="lookupMyIP()">My IP</button>
+    </div>
   </div>
 
-  <button class="secondary" onclick="miIP()">Mi IP</button>
+  <div class="card">
+    <h3>Location Information</h3>
+    <div id="result" class="result" style="display:none"></div>
+    <div id="map" style="display:none"></div>
+    <div id="ips" class="result" style="display:none"></div>
+    <div id="error" class="error"></div>
+  </div>
 
-  <div id="result" class="result" style="display:none"></div>
-  <div id="map" style="display:none"></div>
-  <div class="result" id="ips" style="display:none"></div>
-
-  <div id="error" class="error"></div>
-
-  <details>
-    <summary>🔐 Recomendaciones de seguridad</summary>
-    <p>
-      Al navegar por Internet, tu dirección IP queda expuesta y puede ser utilizada
-      para obtener información aproximada sobre tu ubicación o proveedor de servicio.
-      En manos equivocadas, estos datos pueden representar un riesgo para tu privacidad.
-    </p>
-    <p>
-      Se recomienda evitar el acceso a sitios web de dudosa procedencia y adoptar
-      medidas adicionales de protección, como el uso de una VPN confiable o
-      navegadores orientados a la privacidad, como Tor Browser.</p>
-  </details>
+  <div class="card">
+    <details>
+      <summary>🔐 Security & Privacy Recommendations</summary>
+      <p>
+        When browsing the Internet, your IP address is exposed and can be used to obtain approximate information about your location or Internet service provider. In the wrong hands, this data may pose a risk to your privacy.
+      </p>
+      <p>
+        We recommend avoiding untrusted websites and using additional protection measures such as a trusted VPN or privacy-focused browsers like Tor Browser.
+      </p>
+    </details>
+  </div>
 
   <footer>
-    Ubicación aproximada · No es GPS · Puede fallar con VPN/Tor
+    Educational project • No data is stored • Approximate location only
   </footer>
 </div>
 
 <script>
-  const result = document.getElementById("result");
-  const error = document.getElementById("error");
-  const mapDiv = document.getElementById("map");
-  const ipsDiv = document.getElementById("ips");
-
   let map, marker;
 
-  // Obtiene SIEMPRE las IPs reales del usuario
-  function cargarIPsUsuario() {
+  // Show user's IPv4 and IPv6
+  function showUserIPs() {
     fetch("https://ipapi.co/json/")
       .then(r => r.json())
       .then(data => {
+        const ipv4 = data.ip || "Not available";
+        const ipv6 = data.ipv6 || "Not available";
+        const ipsDiv = document.getElementById("ips");
         ipsDiv.style.display = "block";
-        ipsDiv.textContent =
-`Tu IPv4 es: ${data.ip || "No disponible"}
-Tu IPv6 es: ${data.ipv6 || "No disponible"}`;
+        ipsDiv.textContent = `Your IPv4: ${ipv4}\nYour IPv6: ${ipv6}`;
       });
   }
 
-  cargarIPsUsuario();
+  showUserIPs();
 
-  function mostrar(data) {
-    const direccion = `${data.city || "?"}, ${data.region || "?"}, ${data.country_name || "?"}`;
+  async function fetchJSON(url) {
+    const res = await fetch(url);
+    return res.json();
+  }
 
-    result.style.display = "block";
-    result.textContent =
-`Dirección aproximada:
-${direccion}
+  async function lookupIP() {
+    const ip = document.getElementById('ipInput').value.trim();
+    if (!ip) return alert("Enter an IP");
+    const data = await fetchJSON(`https://ipwho.is/${ip}`);
+    if (!data.success) return alert("Invalid IP");
+    updateUI(data);
+  }
 
-ISP: ${data.org || "?"}`;
+  async function lookupMyIP() {
+    const data = await fetchJSON("https://ipwho.is/");
+    updateUI(data);
+  }
+
+  function updateUI(data) {
+    const resultDiv = document.getElementById("result");
+    const mapDiv = document.getElementById("map");
+    const ipsDiv = document.getElementById("ips");
+    const errorDiv = document.getElementById("error");
+
+    const ipv4 = data.type === "IPv4" ? data.ip : "Not available";
+    const ipv6 = data.type === "IPv6" ? data.ip : "Not available";
+
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = `
+      City: ${data.city || "—"}<br>
+      Region: ${data.region || "—"}<br>
+      Country: ${data.country || "—"}<br>
+      ISP: ${data.connection?.isp || "—"}<br>
+      <strong>IPv4:</strong> ${ipv4}<br>
+      <strong>IPv6:</strong> ${ipv6}
+    `;
 
     if (data.latitude && data.longitude) {
       mapDiv.style.display = "block";
-
       if (!map) {
-        map = L.map("map").setView([data.latitude, data.longitude], 10);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap"
+        map = L.map('map').setView([data.latitude, data.longitude], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
         }).addTo(map);
         marker = L.marker([data.latitude, data.longitude]).addTo(map);
       } else {
@@ -191,36 +226,6 @@ ISP: ${data.org || "?"}`;
       }
     }
   }
-
-  function buscarIP() {
-    const ip = document.getElementById("ipInput").value.trim();
-    if (!ip) {
-      error.textContent = "Ingresá una IP válida";
-      return;
-    }
-    consultar(ip);
-  }
-
-  function miIP() {
-    consultar("");
-  }
-
-  function consultar(ip) {
-    error.textContent = "";
-    result.style.display = "none";
-    mapDiv.style.display = "none";
-
-    fetch(`https://ipapi.co/${ip}/json/`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) throw new Error();
-        mostrar(data);
-      })
-      .catch(() => {
-        error.textContent = "No se pudo obtener la información";
-      });
-  }
 </script>
-
 </body>
 </html>
